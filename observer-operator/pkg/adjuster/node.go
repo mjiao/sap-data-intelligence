@@ -75,10 +75,12 @@ func (a *Adjuster) ensureResource(ctx context.Context, obs *sdiv1alpha1.SDIObser
 	err := a.Client.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, resource)
 	if err != nil && errors.IsNotFound(err) {
 		a.logger.Info(fmt.Sprintf("%s %s does not exist, creating it.", resourceGVK, name))
-		if err := a.Client.Create(ctx, resource); err != nil {
+		// Set the namespace on the resource before creating it
+		resource.SetNamespace(namespace)
+		if err := ctrl.SetControllerReference(obs, resource, a.Scheme); err != nil {
 			return err
 		}
-		if err := ctrl.SetControllerReference(obs, resource, a.Scheme); err != nil {
+		if err := a.Client.Create(ctx, resource); err != nil {
 			return err
 		}
 	} else if err != nil {
